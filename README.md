@@ -40,6 +40,6 @@ Description of Functions:
       So i tried reconstructing the input immediatly after the pattern is learnt in memory matrix. And it works. !! As 
       you execute the code, it will show input pattern and output pattern. both match in sequence !!
       
-      If any one can fix prediction, that would be awesome !
+  If any one can fix prediction, that would be awesome !
       
       
