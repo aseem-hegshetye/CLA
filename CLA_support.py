@@ -132,8 +132,8 @@ def strengthening_synapse(synapse_matrix,history_matrix,memory_matrix,m,n,predic
 						
 						if temp.flat[j] <=threshold:
 							temp.flat[j]=temp.flat[j]+0.2
-						if temp2.flat[i]<=1:
-							temp2.flat[i]=temp2.flat[i]+0.2
+						#if temp2.flat[i]<=1:
+							#temp2.flat[i]=temp2.flat[i]+0.2
 						synapse_matrix[i,:,:]=temp
 						synapse_matrix[j,:,:]=temp2
 						#print synapse_matrix[i,:,:]
@@ -164,9 +164,9 @@ def strengthening_connection_matrix(output_of_columns,connection_matrix,n,input_
 					#print connection_matrix[i,col]
 					#print (input_vector[number_of_input,col])
 					#raw_input('\n\n problem \n\n')
-					connection_matrix[i,col]=(input_vector[number_of_input,col]/float(5))+connection_matrix[i,col]
+					connection_matrix[i,col]=(input_vector[number_of_input,col]/float(1))+connection_matrix[i,col]
 			
-	print (connection_matrix)
+	#print (connection_matrix)
 	#raw_input('\n\nconnection_matrix \n')
 			
 	return connection_matrix
