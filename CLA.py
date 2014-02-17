@@ -9,23 +9,26 @@ import CLA_support
 
 
 def main():
-	k=7 # size of INPUT VECTOR
-	d=2  # NUMBER OF ON BITS IN INPUT VECTOR
-	percentage_of_col_active=3
+	k=8 # size of INPUT VECTOR
+	d=1  # NUMBER OF ON BITS IN INPUT VECTOR
+	percentage_of_col_active=5
+	number_of_inputs=5
 	#input_vector=numpy.matrix([[1,1,0],[0,1,1],[1,0,1],[1,1,0],[0,1,1],[1,0,1]])
 	#input_vector=numpy.matrix([[1,1,0,0,0],[0,1,1,0,0],[0,0,1,1,0],[0,0,0,1,1]])
-	#input_vector=numpy.matrix([[1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1]])
-	input_vector=numpy.matrix([[1,1,0,0,0,0,0],[0,1,1,0,0,0,0],[0,0,1,1,0,0,0],[0,0,0,1,1,0,0]])
+	input_vector=numpy.matrix([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0]])
+	# It works when input bits sparsity is good.
+	#,[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0]
+	#input_vector=numpy.matrix([[1,1,0,0,0,0,0],[0,1,1,0,0,0,0],[0,0,1,1,0,0,0],[0,0,0,1,1,0,0]])
 	
 	#though i have delcared this as a matrix we should use one by one input.
 	#single input takes long enough to go through the cla. then we can take another. and loop continues !
 	
-	number_of_repetition=30
+	number_of_repetition=50
 	#NUMBER OF TIMES THE WHOLE INPUT SEQUENCE MATRIX IS PASSED IN CLA
 	
 	
-	m=3 #ROWS OF MEMORY MATRIX
-	n=100 # COLUMNS OF MEMORY MATRIX
+	m=2 #ROWS OF MEMORY MATRIX
+	n=40 # COLUMNS OF MEMORY MATRIX
 	
 	memory_matrix=numpy.matrix(numpy.zeros((m,n)))
 	history_matrix=memory_matrix
@@ -35,6 +38,17 @@ def main():
 	connection_matrix=numpy.random.rand(n,k)
 	
 	
+	indexcol=(numpy.zeros((numpy.int( n* ( (percentage_of_col_active/numpy.float(100))*(number_of_inputs+1))))))   # its storing the index of ON columns in memory matrix for every input in a sequence !!
+	#print indexcol
+	#print((n* (percentage_of_col_active/100)*(number_of_inputs+1)))
+	#print number_of_inputs
+	#print percentage_of_col_active
+	#print (n*(percentage_of_col_active/numpy.float (100)))
+	#raw_input('\n indexcol \n')
+	
+	
+	
+	index=0
 	# !!!!! INDEXING OF A NUMPY MATRIX STARTS FROM [0,0]
 	
 	#THIS LOOP SETS THE CONNECTION MATRIX WITH 50% CONNECTIONS AS "NAN" 
@@ -106,6 +120,10 @@ def main():
 			print(prediction_matrix)
 			#raw_input('\n\n\n its the prediction matrix \n\n')
 		
+			#if repi<2:
+				#prediction_vector=prediction_vector*0
+				#prediction_matrix=prediction_matrix*0
+		
 		
 		#IT GIVES MEMORY MATRIX BY ACTIVING THOSE % OF COLUMNS THAT HAVE WON 
 		#AND ACTIVATING THOSE CELLS THAT ARE IN PREDICTIVE STATE IN THAT ON COLUMN
@@ -126,7 +144,20 @@ def main():
 		#IT STRENGTHENS CONNECTIONS BETWEEN ACTIVE COLUMNS AND ACTIVE BITS .THESE CONNECTIONS ARE STORED IN CONNECTION MATRIX
 		#input_vector IS ACTUALLY A MATRIX. HERE ONLY THE CURRENT INPUT BEING PROCESSED IS PASSED !! aWESOME
 			connection_matrix=CLA_support.strengthening_connection_matrix(output_of_columns,connection_matrix,n,input_vector,number_of_input,prediction_vector)
-		
+			
+			#printing which index of columns are active
+			#print output_of_columns
+			if repi==0:
+				#print indexcol
+				#raw_input('\n output of columns \n')
+				for indexcol_2 in xrange (0,n):
+					if output_of_columns[indexcol_2]>0:
+						indexcol[index]=indexcol_2
+						index=index+1
+				#		print indexcol
+						#raw_input('\n output of columns \n')
+			#raw_input('\n output of columns \n')
+			
 			#print connection_matrix
 			#raw_input('\connection_matrix\n')
 		
@@ -136,13 +167,16 @@ def main():
 			connection_matrix_zero=CLA_support.replacing_nan_with_zero(connection_matrix)
 			output=CLA_support.reconstruction(memory_matrix,connection_matrix_zero,n)
 			output=CLA_support.top_bit(output,d)
-			raw_input(' \n Doing immediate reconstruction from learned patterns.\n input was\n' )
+			#raw_input(' \n Doing immediate reconstruction from learned patterns.\n input was\n' )
 			print input_vector[number_of_input,:]
-			raw_input(' \n output is\n' )
+			#raw_input(' \n output is\n' )
 			print (output)
-			raw_input(' \n \n' )
+			#raw_input(' \n \n' )
+			
 	
 	
+	print indexcol
+	#raw_input(' \n final index of columns! \n' )
 	'''connection_matrix_zero=CLA_support.replacing_nan_with_zero(connection_matrix)
 	output=CLA_support.reconstruction(memory_matrix,connection_matrix_zero,n)
 	output=CLA_support.top_bit(output,d)
@@ -155,8 +189,8 @@ def main():
 		prediction_matrix=CLA_support.next_prediction(memory_matrix,m,n,synapse_matrix)
 		#THIS PREDICTION MATRIX HAS MANY ON CELLS PER COLUMN AND MANY COLUMNS ACTIVE
 		
-		print(memory_matrix)
-		raw_input('\n\n memory matrix \n\n')
+		#print(memory_matrix)
+		#raw_input('\n\n memory matrix \n\n')
 		
 		#getting vector with max value every column as its bits
 		prediction_vector=CLA_support.matrix_to_vector(prediction_matrix)
@@ -166,13 +200,20 @@ def main():
 		#print(prediction_vector)
 			#raw_input('\n\nits the prediction vector \n\n')
 		
+		for indexcol_3 in xrange (0,n):
+			if prediction_vector[indexcol_3]>0:
+				
+				print prediction_vector[indexcol_3]
+				print indexcol_3
+				#raw_input('\n index of prediction vector ON columns during prediction stage \n where this algorithm is predicting the sequence.\n learning is over')
+			
 		
 		#SUBSTITUTE ON BITS FROM VECTOR TO THEIR CORRESPONDING LOCATIONS IN 
 		#PREDICTION MATRIX !!
 		prediction_matrix=CLA_support.vector_to_matrix(prediction_vector,prediction_matrix,n)
 		
-		print(prediction_matrix)
-		raw_input('\n\n prediction matrix \n\n')
+		#print(prediction_matrix)
+		#raw_input('\n\n prediction matrix \n\n')
 	
 		output=CLA_support.reconstruction(prediction_matrix,connection_matrix_zero,n)
 		output=CLA_support.top_bit(output,d)
