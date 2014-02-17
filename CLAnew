@@ -1,0 +1,407 @@
+
+import sys
+import operator
+import math
+import time
+#from numpy import *
+import numpy
+import CLA_support
+
+
+def main():
+	k=7 # size of INPUT VECTOR
+	d=1  # NUMBER OF ON BITS IN INPUT VECTOR
+	percentage_of_col_active=5
+	number_of_inputs=7
+	#input_vector=numpy.matrix([[1,0,0],[0,1,0],[0,0,1],[1,0,0],[0,1,0],[0,0,1]])
+	#input_vector=numpy.matrix([[1,0,0,0,0,0,0],[0,1,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]])
+	input_vector=numpy.matrix([[0,0,0,0,0,0,1],[0,0,0,0,0,1,0],[0,0,0,0,1,0,0],[0,0,0,1,0,0,0],[0,0,1,0,0,0,0],[0,1,0,0,0,0,0],[1,0,0,0,0,0,0]])
+	#input_vector=numpy.matrix([[1,0,0],[0,1,0],[0,0,1],[1,0,0],[0,1,0],[0,0,1],[1,0,0],[0,0,1],[0,1,0]])
+	#input_vector=numpy.matrix([[0,0,1],[0,1,0],[1,0,0],[0,0,1],[0,1,0],[1,0,0],[0,1,0],[1,0,0],[0,0,1]])
+	#input_vector=numpy.matrix([[1,1,0],[0,1,1],[1,0,1],[1,1,0],[0,1,1],[1,0,1]])
+	#input_vector=numpy.matrix([[1,1,0,0,0],[0,1,1,0,0],[0,0,1,1,0],[0,0,0,1,1]])
+	#input_vector=numpy.matrix([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0]])
+	#input_vector=numpy.matrix([[1,0,0,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,0,0,1]])
+	#input_vector=numpy.matrix([[1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1],[0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0],[0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0],[0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0]])
+	# It works when input bits sparsity is good.
+	#,[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0]
+	#input_vector=numpy.matrix([[1,1,0,0,0,0,0],[0,1,1,0,0,0,0],[0,0,1,1,0,0,0],[0,0,0,1,1,0,0]])
+	
+	#though i have delcared this as a matrix we should use one by one input.
+	#single input takes long enough to go through the cla. then we can take another. and loop continues !
+	
+	number_of_repetition=50
+	#NUMBER OF TIMES THE WHOLE INPUT SEQUENCE MATRIX IS PASSED IN CLA
+	repetition_for_2nd_seq=25
+	#number oF REPETITION AT WHICH INPUT VECTOR IS CHANGED TO 2ND SEQUENCE TO BE LEARNED !!
+	
+	
+	m=3 #ROWS OF MEMORY MATRIX
+	n=40 # COLUMNS OF MEMORY MATRIX
+	
+	memory_matrix=numpy.matrix(numpy.zeros((m,n)))
+	history_matrix=memory_matrix # it has previous memory matrix
+	history_matrix_2nd=memory_matrix # it has previous to previous memory matrix
+	history_matrix_3rd=memory_matrix# it has previous to previous to previous memory matrix.. wa wa !!
+	prediction_matrix=memory_matrix
+	
+	
+	
+	indexcol=(numpy.zeros((numpy.int( n* ( (percentage_of_col_active/numpy.float(100))*(number_of_inputs+1))))))   # its storing the index of ON columns in memory matrix for every input in a sequence !!
+	#print indexcol
+	#print((n* (percentage_of_col_active/100)*(number_of_inputs+1)))
+	#print number_of_inputs
+	#print percentage_of_col_active
+	#print (n*(percentage_of_col_active/numpy.float (100)))
+	#raw_input('\n indexcol \n')
+	
+	
+	
+	index=0
+	# !!!!! INDEXING OF A NUMPY MATRIX STARTS FROM [0,0]
+	
+	# COMMENT THE FOLLOWING OUT WHILE RUNNING THIS PROGRAME ON DIFFERENT SEQUENCE AFTER LEARNING ONCE ***********************************************
+	#************************************************************************************************************************************************
+	
+	synapse_matrix=(numpy.zeros((m*n,m,n)))
+	synapse_matrix_2nd=(numpy.zeros((m*n,m,n))) # it has 2nd order connections. these connections are accounted for next prediction and not the current one
+	synapse_matrix_3rd=(numpy.zeros((m*n,m,n))) # its 3rd order connection. next to next prediction
+	# 3 - DIMENSIONAL MATRIX [3rd dim, rows, col ]
+	
+	#'''
+	connection_matrix=numpy.random.rand(n,k)
+	
+	
+	#THIS LOOP SETS THE CONNECTION MATRIX WITH 50% CONNECTIONS AS "NAN" 
+	for i in xrange(0,n):
+		for count in xrange(0,numpy.int(math.floor(0.5*k))):
+			#print numpy.int(math.floor(0.5*k))
+			#raw_input('that is the count range')
+			#setting 50% of connections from i/p to coloumns to NAN
+			while True:
+				rand_num=numpy.random.random_integers(0,k-1)
+				#print (rand_num)
+				#raw_input('random number')
+				if (numpy.isnan(connection_matrix[i,rand_num]))== False:
+					#if that connection is not already a NAN then set it as NAN and also increase the count, else just continue iterations
+					# without increasing the count
+					connection_matrix[i,rand_num]=numpy.nan
+					#print connection_matrix[i,:]
+					#raw_input('about to break the while loop and increase count')
+					break
+				#else:
+					#print ('its already NaN')
+					
+	#'''
+	# *******************************************************************************************************************************************************
+	#ALGORITHM PROBABLY STARTS HERE !!!!!
+	'''
+	print (synapse_matrix)
+	raw_input('\n synapse_matrix before loading but after initialization. Program just started\n')
+	print (synapse_matrix.shape)
+	raw_input(' \n DIMENSION OF SYNAPSE MATRIX before loading but after initialization. Program just started\n' )
+	'''
+	
+	#UNCOMMENT THE FOLLOWING SECTION WHILE COMMETING THE ABOVE SECTION *******************************
+	'''
+	# LOADING EVERYTHING **************************************
+	synapse_matrix[0,:,:]=numpy.loadtxt('synapse_matrixd.txt')
+	synapse_matrix[1,:,:]=numpy.loadtxt('synapse_matrixdd.txt')
+	synapse_matrix[2,:,:]=numpy.loadtxt('synapse_matrixddd.txt')
+	synapse_matrix_2nd[0,:,:]=numpy.loadtxt('synapse_matrix_2ndd.txt')
+	synapse_matrix_2nd[1,:,:]=numpy.loadtxt('synapse_matrix_2nddd.txt')
+	synapse_matrix_2nd[2,:,:]=numpy.loadtxt('synapse_matrix_2ndddd.txt')
+	synapse_matrix_3rd[0,:,:]=numpy.loadtxt('synapse_matrix_3rdd.txt')
+	synapse_matrix_3rd[1,:,:]=numpy.loadtxt('synapse_matrix_3rddd.txt')
+	synapse_matrix_3rd[2,:,:]=numpy.loadtxt('synapse_matrix_3rdddd.txt')
+	connection_matrix=numpy.loadtxt('connection_matrix.txt')
+	
+	#  *******************************************************
+	#'''
+	'''
+	# ***************************************************************************************************
+	print (synapse_matrix)
+	raw_input('\n synapse_matrix after loading\n')
+	print (synapse_matrix.shape)
+	raw_input(' \n DIMENSION OF SYNAPSE MATRIX after loading text file\n' )
+	print (sum(sum(sum(synapse_matrix))))
+	raw_input(' \n sum of  synapse_matrix after loading text file\n' )
+	print (sum(sum(sum(synapse_matrix_2nd))))
+	raw_input(' \n sum of  synapse_matrix_2nd after loading text file\n' )
+	print (connection_matrix)
+	raw_input(' \n   connection_matrix after loading text file\n' )
+	'''
+	
+	for repi in range(0,number_of_repetition):
+		print(repi)
+		#raw_input('\n number of repetition\n')
+		
+		#CHANGING INPUT VECTOR AFTER CERTAIN NUMBER OF ITERATIONS !! 
+		#```````````````````````````````````````````````````````$$$$$$$$$$$$$$$$$$$$$$`````````````````````````````````````
+		if repi==repetition_for_2nd_seq:
+			#input_vector=numpy.matrix([[0,0,1],[0,1,0],[1,0,0],[0,0,1],[0,1,0],[1,0,0]])
+			#input_vector=numpy.matrix([[1,0,0],[0,1,0],[0,0,1],[1,0,0],[0,1,0],[0,0,1]])
+			input_vector=numpy.matrix([[1,0,0,0,0,0,0],[0,1,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]])
+			#input_vector=numpy.matrix([[0,0,0,0,0,0,1],[0,0,0,0,0,1,0],[0,0,0,0,1,0,0],[0,0,0,1,0,0,0],[0,0,1,0,0,0,0],[0,1,0,0,0,0,0],[1,0,0,0,0,0,0]])
+			#input_vector=numpy.matrix([[0,0,1],[0,1,0],[1,0,0],[0,0,1],[0,1,0],[1,0,0],[0,1,0],[1,0,0],[0,0,1]])
+			#input_vector=numpy.matrix([[1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1],[0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0],[0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0],[0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0],[0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0]])
+			#raw_input(' \n new input has been loaded\n' )
+			#print(history_matrix)
+			#raw_input('\n old !!!!!!!!!!!currently being used history matrix \n' )
+			memory_matrix=numpy.matrix(numpy.zeros((m,n)))
+			history_matrix=memory_matrix # it has previous memory matrix
+			history_matrix_2nd=memory_matrix # it has previous to previous memory matrix
+			history_matrix_3rd=memory_matrix# it has previous to previous to previous memory matrix.. wa wa !!
+			prediction_matrix=memory_matrix
+			#print(history_matrix)
+			#raw_input('\n !!!!!!!!!!!!!!!new history matrix and memory mat set to zero\n' )
+			
+	
+		for number_of_input in range(0,input_vector.shape[0]):				
+	# every input from input_vector is taken in interations ONE AT A TIME
+	#WHOLE PROGRAM WIL COME UNDER THIS FOR LOOP 	BECAUSE IT PROVIDES NEXT INPUT IN NEXT ITERATION
+			if repi<2 or (repi>25 and repi<28):
+				print(memory_matrix)
+				#raw_input('\n memory matrix while learning\n' )
+	
+		#print (connection_matrix)
+		#raw_input('\nthat was connection matrix')
+		#print (input_vector[number_of_input,:].T)
+		#raw_input('\nthat was input vector')
+			#print input_vector[number_of_input,:]
+			#raw_input('\n\n\n input \n\n')
+			connection_matrix_zero=CLA_support.replacing_nan_with_zero(connection_matrix)
+		#THIS REPLACES NAN IN CONNECTION MATRIX WITH "0" . THIS HELPS IN MULTIPLICATIONS
+		#print (connection_matrix_zero)
+		#raw_input('connection matrix with zeros instead of NAN')
+		
+			output_of_columns=connection_matrix_zero*(input_vector[number_of_input,:].T)
+		#THIS IS A VECTOR, EVERY BIT REPRESENTING OUTPUT OF EVERY COLUMN
+		
+		#this will keep only "percentage_of_col_active" bit ON IN THE COLUMN VECTOR
+			output_of_columns=CLA_support.top_bit(output_of_columns,numpy.int(math.floor((percentage_of_col_active/float(100))*n)))
+			
+			
+			
+			# we want to skip prediction matrix while learning a new sequence for first time. !! 
+		#CHECKING FOR NEW PREDICTION FROM HISTORY MATRIX WHICH HAS THE PREVIOUS [3] MEMORY MATRIX IN IT
+		#if sum(sum(history_matrix)) !=0:
+			prediction_matrix=CLA_support.next_prediction(history_matrix,m,n,synapse_matrix,synapse_matrix_2nd,synapse_matrix_3rd,history_matrix_2nd,history_matrix_3rd)
+		#THIS PREDICTION MATRIX HAS MANY ON CELLS PER COLUMN AND MANY COLUMNS ACTIVE......!!!!!!!!yeah
+		
+			# FOLLOWING  STATEMENT STARTING FROM [..] ARE THE ONE COMMENTED LATER. WE WANT TO MAKE MULTIPLE PREDICTIONS ALWAYS. 
+			# WE WILL CHOOSE THE TOP BIT FROM SPECIFIC COLUMNS FROM THE NEXT INPUT WE SEE. WE DONT CUT DOWN ALL PREDICTIONS BEFORE WE 
+			# PROCESS THE INPUT. 
+				#getting vector with max value every column as its bits
+			#..prediction_vector=CLA_support.matrix_to_vector(prediction_matrix)
+		
+			#..prediction_vector=CLA_support.top_bit(prediction_vector,numpy.int(math.floor((percentage_of_col_active/float(100))*n)))
+		#NOW THIS PREDICTION_VECTOR WILL HAVE ONLY CERTAIN PERCENTAGE OF BITS ACTIVE.
+			#print(prediction_vector)
+			#raw_input('\n\n\n its the prediction vector \n\n')
+		
+		
+		#SUBSTITUTE ON BITS FROM VECTOR TO THEIR CORRESPONDING LOCATIONS IN 
+		#PREDICTION MATRIX !!
+			#..prediction_matrix=CLA_support.vector_to_matrix(prediction_vector,prediction_matrix,n)
+			
+			if repi==repetition_for_2nd_seq:
+				prediction_matrix=numpy.matrix(numpy.zeros((m,n)))
+			
+			#print(prediction_matrix)
+			#raw_input('\n\n\n prediction matrix \n\n')
+		
+			#if repi<2:
+				#prediction_vector=prediction_vector*0
+				#prediction_matrix=prediction_matrix*0
+		
+		
+		#IT GIVES MEMORY MATRIX BY ACTIVING THOSE % OF COLUMNS THAT HAVE WON 
+		#AND ACTIVATING THOSE CELLS THAT ARE IN PREDICTIVE STATE IN THAT ON COLUMN
+		#OR RANDOM CELL 
+			#print(output_of_columns.T)
+			#raw_input('\n\n output of columns \n\n')
+			memory_matrix=CLA_support.memory_matrix_using_coloutput_predictionmat(output_of_columns,prediction_matrix,m,n)
+			#print(memory_matrix)
+			#raw_input('\n\n memory matrix from prediction matrix\n\n')
+		
+		#IT FORMS CONNECTIONS BETWEEN CURRENT ACTIVE CELLS FROM MEMORY MATRIX AND PREVIOUS ACTIVE CELLS FROM HISTORY MATRIX
+		#THESE CONNECTIONS ARE IN SYNAPSE MATRIX
+			synapse_matrix,synapse_matrix_2nd,synapse_matrix_3rd=CLA_support.strengthening_synapse(synapse_matrix,history_matrix,memory_matrix,m,n,prediction_matrix,synapse_matrix_2nd,synapse_matrix_3rd,history_matrix_2nd,history_matrix_3rd)
+			#print synapse_matrix
+			#print(sum(sum(synapse_matrix)))
+			#raw_input('\n synapse_matrix\n')
+			#print synapse_matrix_2nd
+			#raw_input('\n synapse_matrix  2nd \n')
+			#print synapse_matrix_3rd
+			#raw_input('\n synapse_matrix  3rd \n')
+		
+		#IT STRENGTHENS CONNECTIONS BETWEEN ACTIVE COLUMNS AND ACTIVE BITS .THESE CONNECTIONS ARE STORED IN CONNECTION MATRIX
+		#input_vector IS ACTUALLY A MATRIX. HERE ONLY THE CURRENT INPUT BEING PROCESSED IS PASSED !! aWESOME
+			connection_matrix=CLA_support.strengthening_connection_matrix(output_of_columns,connection_matrix,n,input_vector,number_of_input)
+			
+			#printing which index of columns are active
+			#print output_of_columns
+			if repi==0:
+				#print indexcol
+				#raw_input('\n output of columns \n')
+				for indexcol_2 in xrange (0,n):
+					if output_of_columns[indexcol_2]>0:
+						indexcol[index]=indexcol_2
+						index=index+1
+				#		print indexcol
+						#raw_input('\n output of columns \n')
+			#raw_input('\n output of columns \n')
+			
+			#print connection_matrix
+			#raw_input('\connection_matrix\n')
+		
+		#STORING MEMORY MATRIX IN HISTORY MATRIX AND READY FOR NEXT ITERATION !!
+			#EXCEPT PREDICTION MATRIX ALL OTHER MATRICES ARE SPECIFIC. PREDICTION MATRIX HAS LOT OF ON VARIABLES AND LOT OF PREDICTIONS
+			
+			history_matrix_3rd=history_matrix_2nd
+			history_matrix_2nd=history_matrix
+			history_matrix=memory_matrix
+	
+			connection_matrix_zero=CLA_support.replacing_nan_with_zero(connection_matrix)
+			output=CLA_support.reconstruction(memory_matrix,connection_matrix_zero,n)
+			output=CLA_support.top_bit(output,d)
+			#raw_input(' \n Doing immediate reconstruction from learned patterns.\n input was\n' )
+			print input_vector[number_of_input,:]
+			print('\n above is the input\n')
+			#raw_input(' \n input vector \n' )
+			print (output)
+			print('\n above is the output\n')
+			#raw_input(' \n  output \n' )
+			
+	
+	
+	#print indexcol
+	#raw_input(' \n final index of columns! \n' )
+	'''connection_matrix_zero=CLA_support.replacing_nan_with_zero(connection_matrix)
+	output=CLA_support.reconstruction(memory_matrix,connection_matrix_zero,n)
+	output=CLA_support.top_bit(output,d)
+	raw_input(' \n first output is\n' )
+	print (output)
+	raw_input(' \n output is\n' )
+	
+	print (synapse_matrix)
+	raw_input(' \n synapse_matrix before saving text file\n' )
+	print (synapse_matrix.shape)
+	raw_input(' \n DIMENSION OF SYNAPSE MATRIX before saving text file\n' )
+	print (sum(sum(sum(synapse_matrix))))
+	raw_input(' \n sum of  synapse_matrix before saving text file\n' )
+	print (sum(sum(sum(synapse_matrix_2nd))))
+	raw_input(' \n sum of  synapse_matrix_2nd before saving text file\n' )
+	print (connection_matrix)
+	raw_input(' \n   connection_matrix before saving text file\n' )
+	'''
+	'''
+	# SAVING EVERYTHING **************************************
+	numpy.savetxt('synapse_matrixd.txt',synapse_matrix[0,:,:])
+	numpy.savetxt('synapse_matrixdd.txt',synapse_matrix[1,:,:])
+	numpy.savetxt('synapse_matrixddd.txt',synapse_matrix[2,:,:])
+	numpy.savetxt('synapse_matrix_2ndd.txt',synapse_matrix_2nd[0,:,:])
+	numpy.savetxt('synapse_matrix_2nddd.txt',synapse_matrix_2nd[1,:,:])
+	numpy.savetxt('synapse_matrix_2ndddd.txt',synapse_matrix_2nd[2,:,:])
+	numpy.savetxt('synapse_matrix_3rdd.txt',synapse_matrix_3rd[0,:,:])
+	numpy.savetxt('synapse_matrix_3rddd.txt',synapse_matrix_3rd[1,:,:])
+	numpy.savetxt('synapse_matrix_3rdddd.txt',synapse_matrix_3rd[2,:,:])
+	numpy.savetxt('connection_matrix.txt',connection_matrix)
+	
+	#  *******************************************************
+	''' 
+	
+	
+	
+	
+	#print ((memory_matrix))
+	#raw_input(' \n   memory_matrix before providing input sequnce\n' )	
+	#print ((history_matrix_2nd))
+	#raw_input(' \n   history_matrix_2nd before providing input sequnce\n' )	
+	#print ((history_matrix_3rd))
+	#raw_input(' \n   history_matrix_3rd before providing input sequnce\n' )	
+	
+	#we need 6 INPUT SEQUENCE to build 3 history matrixes and then we are through !!
+	#input_sequence_matrix=numpy.matrix([[1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1],[0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0],[0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0]])
+	#input_sequence_matrix=numpy.matrix([[1,0,0,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0]])
+	#input_sequence_matrix=numpy.matrix([[1,0,0],[0,1,0],[0,0,1],[1,0,0],[0,1,0],[0,0,1]])
+	#input_sequence_matrix=numpy.matrix([[0,0,1],[0,1,0],[1,0,0],[0,0,1],[0,1,0],[1,0,0]])
+	input_sequence_matrix=numpy.matrix([[0,0,0,0,0,0,1],[0,0,0,0,0,1,0],[0,0,0,0,1,0,0],[0,0,0,1,0,0,0],[0,0,1,0,0,0,0],[0,1,0,0,0,0,0]])
+	#input_sequence_matrix=numpy.matrix([[1,0,0,0,0,0,0],[0,1,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0],[0,0,0,0,1,0,0],[0,0,0,0,0,1,0]])
+	memory_matrix,history_matrix_2nd,history_matrix_3rd=CLA_support.building_memory_matrix_and_history_matrix_2and3_from_Provided_Input(connection_matrix,m,n,input_sequence_matrix,percentage_of_col_active,synapse_matrix,synapse_matrix_2nd,synapse_matrix_3rd )
+	
+	'''print ((memory_matrix))
+	raw_input(' \n   memory_matrix after providing input sequnce\n' )	
+	print ((history_matrix_2nd))
+	raw_input(' \n   history_matrix_2nd after providing input sequnce\n' )	
+	print ((history_matrix_3rd))
+	raw_input(' \n   history_matrix_3rd after providing input sequnce\n' )	
+	'''
+	while True:
+		"""
+		print(memory_matrix)
+		raw_input('\n\n memory matrix before next prediction \n\n')
+		print(history_matrix)
+		raw_input('\n\n history matrix before next prediction \n\n')
+		print(history_matrix_2nd)
+		raw_input('\n\n history matrix_2nd before next prediction \n\n')
+		print(history_matrix_3rd)
+		raw_input('\n\n history matrix 3rd before next prediction \n\n')
+		print(synapse_matrix)
+		raw_input('\n\n synapse matrix before next prediction \n\n')
+		print(synapse_matrix_2nd)
+		raw_input('\n\n synapse matrix 2nd before next prediction \n\n')
+		print(synapse_matrix_3rd)
+		raw_input('\n\n synapse matrix 3rd before next prediction \n\n')
+		"""
+		
+		
+		
+		
+		
+		prediction_matrix=CLA_support.next_prediction(memory_matrix,m,n,synapse_matrix,synapse_matrix_2nd,synapse_matrix_3rd,history_matrix_2nd,history_matrix_3rd)
+		#THIS PREDICTION MATRIX HAS MANY ON CELLS PER COLUMN AND MANY COLUMNS ACTIVE
+		
+		#print(memory_matrix)
+		#raw_input('\n\n memory matrix after next prediction \n\n')
+		
+		#getting vector with max value every column as its bits
+		prediction_vector=CLA_support.matrix_to_vector(prediction_matrix)
+		
+		prediction_vector=CLA_support.top_bit(prediction_vector,numpy.int(math.floor((percentage_of_col_active/float(100))*n)))
+		#NOW THIS PREDICTION_VECTOR WILL HAVE ONLY CERTAIN PERCENTAGE OF BITS ACTIVE.
+		#print(prediction_vector)
+			#raw_input('\n\nits the prediction vector \n\n')
+		
+		for indexcol_3 in xrange (0,n):
+			if prediction_vector[indexcol_3]>0:
+				
+				#print prediction_vector[indexcol_3]
+				print indexcol_3
+				#raw_input('\n index of prediction vector ON columns during prediction stage \n where this algorithm is predicting the sequence.\n learning is over')
+			
+		
+		#SUBSTITUTE ON BITS FROM VECTOR TO THEIR CORRESPONDING LOCATIONS IN 
+		#PREDICTION MATRIX !!
+		prediction_matrix=CLA_support.vector_to_matrix(prediction_vector,prediction_matrix,n)
+		
+		#print(prediction_matrix)
+		#raw_input('\n\n prediction matrix \n\n')
+	
+		output=CLA_support.reconstruction(prediction_matrix,connection_matrix_zero,n)
+		output=CLA_support.top_bit(output,d)
+		#memory_matrix=prediction_matrix
+		
+		history_matrix_3rd=history_matrix_2nd
+		history_matrix_2nd=memory_matrix
+		memory_matrix=prediction_matrix
+			
+			
+		raw_input(' \n output is\n' )
+		print (output)
+		raw_input(' \n get on the train baby\n' )
+
+
+if __name__ == '__main__':
+  main()
