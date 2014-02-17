@@ -1,0 +1,347 @@
+import sys
+import operator
+import math
+import time
+#from numpy import *
+import numpy
+
+def replacing_nan_with_zero(connection_matrix):
+	matrx=connection_matrix+(connection_matrix*0)
+	#PYTHON DOESNT HAVE PASS BY VALUE, AND I DONT WANT IT TO MODULATTE CONNECTION MATRIX BY REPLACING NAN. 
+	#THIS NEW MATRX IS RETURNED AND IS STORED IN CONNECTION_MATRIX_ZERO
+	for i in range(0,matrx.shape[0]):
+		for j in range(0,matrx.shape[1]):
+			if numpy.isnan(matrx[i,j]):
+				matrx[i,j]=0
+				
+	return matrx
+	
+def top_bit(vect_in,num):
+# this function returns a vector with top "num" number 
+#of bits in a vector "vect" KEPT ON and others are turned 0
+	vect=vect_in+(vect_in*0)
+	#CREATED A NEW OBJECT SO THAT THE PASSED ORIGINAL VECTOR IS UNCHANGED
+	temp= vect*0
+	"""print(vect)
+	raw_input('\n this is the vector to select top bits\n')
+	print (num)
+	raw_input('\n number of counts \n')
+	print (temp)
+	raw_input('\n temporary zero vector to store\n')
+	"""
+	for count in range(0,num):
+	# [num-1] IS THE TOTAL NUMBER OF TIMES THIS LOOP WILL EXECUTE
+		index_to_change=numpy.argmax(vect)
+		temp[index_to_change]=vect[index_to_change]
+		vect[index_to_change]=0
+		
+		#print (temp)
+		#print( vect)
+		#raw_input('\nmodified after 1st count\n')
+		
+	return temp
+			
+def next_prediction(history_matrix,m,n,synapse_matrix,synapse_matrix_2nd,synapse_matrix_3rd,history_matrix_2nd,history_matrix_3rd):
+	# RETURNS A "MATRIX" (it may have more than required columns active and also more cells per column active.. !! loads of prediction)
+	#OF NEXT PREDICTION.
+	trial2=history_matrix*0
+	#print (trial2)
+	#raw_input(' \n\ntrial2 defined \n\n')
+	#print (history_matrix)
+	#raw_input(' \n\nHistory matrix \n\n')
+	
+	#all 3 order connections are addded in trial2
+	
+	for i in range(0,m*n):
+		if history_matrix.flat[i]>0:
+			#print (trial2)
+			#raw_input(' \n\ntrial2 being assigned\n\n')
+			trial2=trial2+synapse_matrix[i,:,:]
+		if history_matrix_2nd.flat[i]>0:
+			trial2=trial2+synapse_matrix_2nd[i,:,:]
+		if history_matrix_3rd.flat[i]>0:
+			trial2=trial2+synapse_matrix_3rd[i,:,:]
+	
+	#for col in range(0,n):
+		#print (trial2)
+		#raw_input(' \n\ntrial2 being assigned\n\n')
+		#trial2[:,col]=top_bit(trial2[:,col],1) #its mahool !!
+		
+		
+	return trial2
+	
+def matrix_to_vector(mat):
+	#RETURNS A VECTOR WHOSE BITS ARE MAX VALUE EVERY COLUMN IN THAT MATRIX
+	number_col=mat.shape[1]
+	k=numpy.zeros(number_col)
+	for i in range(0,number_col):
+		k[i]=numpy.amax(mat[:,i])
+	return k
+	
+	
+	
+def vector_to_matrix(vect,mat,n):
+	# IT SUBSTITUTE ON BITS FROM VECTOR TO THEIR CORRESPONDING LOCATIONS IN 
+	# THE MATRIX [BY PARSING THE MATRIX] !!
+	output_matrix=mat*0
+	for i in range(0,n):
+		if vect[i]!=0:
+			index=numpy.argmax(mat[:,i])
+			max_val=numpy.amax(mat[:,i])
+			#mat[:,i]=0
+			output_matrix[index,i]=max_val
+		
+	return output_matrix
+	
+	
+	
+def memory_matrix_using_coloutput_predictionmat(output_of_columns,prediction_matrix,m,n):
+	#IT TAKES COLUMN OUTPUT AND IF THERE IS A PREDICTIVE CELL IN THAT COLUMN
+	#SEEN THROUGH PREDICTION MATRIX, IT GETS ACTIVATED ELSE A RANDOM CELL IN THAT
+	#COLUMN IS ACTIVATED
+	memory_matrix2=prediction_matrix*0
+	for i in range(0,n):
+		if output_of_columns[i]>0:
+			if sum(prediction_matrix[:,i])>0: # prediction_matrix has something non zero in that column
+				memory_matrix2[numpy.argmax(prediction_matrix[:,i]),i]=1
+				#ARGMAX gives index of maximum value of that vector !!
+			else:
+				memory_matrix2[numpy.random.randint(0,m),i]=1
+				
+	return memory_matrix2			
+				
+				
+				
+def strengthening_synapse(synapse_matrix,history_matrix,memory_matrix,m,n,prediction_matrix,synapse_matrix_2nd,synapse_matrix_3rd,history_matrix_2nd,history_matrix_3rd):
+	#IT FORMS CONNECTIONS BETWEEN ON CELLS FROM HISTORY AND MEMORY MATRIX IN SYNAPSE MATRIX
+	#IF PREDICTION GOES RIGHT i:e: IF PREDICTED CELL AND OUTPUT OF COL PREDICTS SAME COLUMN 
+	#THAN THAT CELL NEEDS TO BE REINFORCED A LOT. COZ ITS DOING RIGHT. BUT CONECTIONS FROM
+	#PREVIOUS CELLS TO THIS PREDICTED CELL SHOULD BE STRENGTHENED, SO NEXT TIME THEY PREDICT THE 
+	#SAME. THIS PREDICTED CELL SHOULD NOT PREDICT THOSE HISTORY CELLS .SO THRESHOLD INCREASS IS 
+	#APPLIED ONLY TO HISTROY MATRIX CELL !!
+	for j in xrange(0,(m*n)):
+		if memory_matrix.flat[j]>0:
+		#if history_matrix.flat[i]>0:
+			#temp=synapse_matrix[i,:,:]
+			threshold=1
+			#temp2=synapse_matrix[j,:,:]
+			
+		    # THIS IS FOR 1ST SYNAPSE MATRIX  
+			for i in xrange(0,(m*n)):
+				#if memory_matrix.flat[j]>0:
+				if history_matrix.flat[i]>0:
+					temp=synapse_matrix[i,:,:]
+					if i!=j:
+						
+						#temp2=synapse_matrix[j,:,:]
+						
+						if prediction_matrix.flat[j]>0: #this means that prediction was correct. 
+							#that cell is activated in memory matrix.reinforce it strongly
+							threshold=10
+						else:
+							threshold=1
+							#awesome !!
+								
+						
+						
+						if temp.flat[j] <=threshold:
+							temp.flat[j]=temp.flat[j]+0.2
+						#if temp2.flat[i]<=1:
+							#temp2.flat[i]=temp2.flat[i]+0.2
+						synapse_matrix[i,:,:]=temp
+						#synapse_matrix[j,:,:]=temp2
+						#print synapse_matrix[i,:,:]
+						#raw_input('\n\n synapse mat \n\n')
+						
+						
+		# THIS IS FOR 2ND SYNAPSE MATRIX 				
+			for i in xrange(0,(m*n)):
+				if history_matrix_2nd.flat[i]>0:
+					temp=synapse_matrix_2nd[i,:,:]
+					if i!=j:
+						if prediction_matrix.flat[j]>0: #this means that prediction was correct. 
+							#that cell is activated in memory matrix.reinforce it strongly
+							threshold=10
+						else:
+							threshold=1
+							#awesome !!
+								
+						if temp.flat[j] <=threshold:
+							temp.flat[j]=temp.flat[j]+0.2
+					
+						synapse_matrix_2nd[i,:,:]=temp
+					
+									
+									
+		# THIS IS FOR 3rd SYNAPSE MATRIX 				
+			for i in xrange(0,(m*n)):
+				if history_matrix_3rd.flat[i]>0:
+					temp=synapse_matrix_3rd[i,:,:]
+					if i!=j:
+						if prediction_matrix.flat[j]>0: #this means that prediction was correct. 
+							#that cell is activated in memory matrix.reinforce it strongly
+							threshold=10
+						else:
+							threshold=1
+							#awesome !!
+								
+						if temp.flat[j] <=threshold:
+							temp.flat[j]=temp.flat[j]+0.2
+					
+						synapse_matrix_3rd[i,:,:]=temp							
+						
+	return (synapse_matrix,synapse_matrix_2nd,synapse_matrix_3rd)
+	
+	
+def strengthening_connection_matrix(output_of_columns,connection_matrix,n,input_vector,number_of_input):
+#IT STRENGTHENS CONNECTIONS BETWEEN ACTIVE COLUMNS AND ACTIVE BITS
+#THESE CONNECTIONS ARE STORED IN CONNECTION MATRIX
+	for i in xrange(0,n):
+		threshold_1=1
+		if output_of_columns[i]>0:
+			#print (connection_matrix[i,:])
+			#raw_input('\connection_matrix one row before changing!!\n')
+			
+			#PREDICTION SHOULD HAVE NOTHING TO DO WITH CONNECTION MATRIX. THATS ABSURD. WE HAVE COMMENTED IT OUT LATER.
+			#if prediction_vector[i]>0:# THIS SHOWS PREDICTED COLUMN BECAME ACTIVE THROUGH FEEDFORWARD INPUT
+				#PREDICTION MATCHES OUTPUT !! YAY. strengthen it  a lot !!
+				#threshold_1=10
+			#else:
+				#threshold_1=1
+			for col in range(0,input_vector.shape[1]):
+				#print input_vector.shape[1]
+				if connection_matrix[i,col]<=threshold_1:
+					#NAN is not considered here. so we r safe. it works.
+					#print i
+					#print col
+					#print connection_matrix[i,col]
+					#print (input_vector[number_of_input,col])
+					#raw_input('\n\n problem \n\n')
+					connection_matrix[i,col]=(input_vector[number_of_input,col]/float(1))+connection_matrix[i,col]
+			
+	#print (connection_matrix)
+	#raw_input('\n\nconnection_matrix \n')
+			
+	return connection_matrix
+	
+	
+def reconstruction(memory_matrix,connection_matrix,n):
+	#IT BUILDS THE INPUT IN SAME SEQUENCE AGAIN
+	trial= (connection_matrix[0,:]*0)+(connection_matrix[0,:]*0)
+	#print(connection_matrix.size)
+	#raw_input('\n size')
+	for i in xrange(0,n):
+		if numpy.amax(memory_matrix[:,i])>0:
+			trial=trial+connection_matrix[i,:]
+			#print(trial)
+			#raw_input('\n trial')
+			
+	return trial
+			
+			
+def building_output_of_columns_from_input(connection_matrix,m,n,percentage_of_col_active,input_vector):
+	#this function builds output vector (COLUMN VECTOR)  from one single input vector, every bit of which represents one column of a memory matrix.
+	#input_vector has to be a ROW VECTOR
+	
+	connection_matrix_zero=replacing_nan_with_zero(connection_matrix)
+	#THIS REPLACES NAN IN CONNECTION MATRIX WITH "0" . THIS HELPS IN MULTIPLICATIONS
+	
+	output_of_columns=connection_matrix_zero*(input_vector.T)
+	#THIS IS A COLUMN VECTOR, EVERY BIT REPRESENTING OUTPUT OF EVERY COLUMN
+		
+	#this will keep only "percentage_of_col_active" bit ON IN THE COLUMN VECTOR
+	output_of_columns=top_bit(output_of_columns,numpy.int(math.floor((percentage_of_col_active/float(100))*n)))
+	return output_of_columns
+	
+	
+	
+def building_memory_matrix_and_history_matrix_2and3_from_Provided_Input(connection_matrix,m,n,input_sequence_matrix,percentage_of_col_active,synapse_matrix,synapse_matrix_2nd,synapse_matrix_3rd ):
+	#it builds all required history matrixes from given input. So while recalling a learnt sequence from provided inputs(hints) 
+	#this function provides all history matrixes required for predictions.
+	output_of_column_matrix=numpy.matrix(numpy.zeros((6,n)))
+	
+	for num1 in xrange(0,6):
+		#this FOR  BUILDS OUTPUT VECTORS FOR ALL INPUTS AND STORES THEM IN A MATRIX FOR FURTHER ROTATING USE !! YAHOO
+		output_of_column_matrix[num1,:]=building_output_of_columns_from_input(connection_matrix,m,n,percentage_of_col_active,input_sequence_matrix[num1,:]).T
+		
+	for num2 in xrange(0,3):
+	# this loop will repeat the whole thing 3 times. first 4 sequences, then 2nd to 5th sequence, then 3rd to 6th sequence.
+	# giving us all 3 history matrixes.
+		synapse_storage=synapse_matrix[0,:,:]*0
+		mem_matrix=synapse_matrix[0,:,:]*0
+		op_1=output_of_column_matrix[num2,:]
+		op_2=output_of_column_matrix[num2+1,:]
+		op_3=output_of_column_matrix[num2+2,:]
+		op_4=output_of_column_matrix[num2+3,:]
+		
+		'''print(output_of_column_matrix)
+		raw_input('\noutput_of_column_matrix\n')
+		print (op_1)
+		raw_input('\nOP_1\n')
+		print (op_1[0])
+		raw_input('\nOP_1[0]\n')
+		print (op_1[1])
+		raw_input('\nOP_1[1]\n')
+		'''
+		count=0
+		for i in range(0,n):
+			if op_1.flat[i]>0:
+				count=count+1
+				for j in xrange(0,m):
+					synapse_storage=synapse_storage+synapse_matrix_3rd[(j*(n))+i,:,:]
+					
+		#print count
+		#raw_input('\n number of on columns for 1st sequence \n')
+		count=0
+		for i in range(0,n):
+			if op_2.flat[i]>0:
+				count=count+1
+				for j in xrange(0,m):
+					print (synapse_matrix.shape)
+					synapse_storage=synapse_storage+synapse_matrix_2nd[(j*(n))+i,:,:]
+
+		#print count
+		#raw_input('\n number of on columns for 2nd sequence \n')
+		count=0	
+		for i in range(0,n):
+			if op_3.flat[i]>0:
+				count=count+1
+				for j in xrange(0,m):
+					#print i
+					#print n
+					#print j
+					#print synapse_matrix
+					#raw_input('\n i and n and j and synapse matrix in sequence above\n')
+					print (synapse_matrix.shape)
+					#raw_input(' \n DIMENSION OF SYNAPSE MATRIX while adding synapse to build history mat from inputs\n' )
+					synapse_storage=synapse_storage+synapse_matrix[(j*(n))+i,:,:]	
+
+		#print count
+		#raw_input('\n number of on columns for 3rd sequence \n')
+		count=0
+		for i in range(0,n):
+			if op_4.flat[i]>0:
+				count=count+1
+				mem_matrix[:,i]=top_bit(synapse_storage[:,i],1)
+				#print mem_matrix[:,i]
+				#raw_input('\n column in memory matrix that is being set from presented inputs \n')
+			#else:
+				#mem_matrix[:,i]=0
+		#print count
+		#raw_input('\n number of on columns for 4th sequence \n')
+		count=0
+		
+		if num2==0:
+			history_matrix_3rd=mem_matrix
+			#print mem_matrix
+			#raw_input('\n history matrix 3rd set\n')
+		elif num2==1:
+			history_matrix_2nd=mem_matrix
+			#print mem_matrix
+			#raw_input('\n history matrix 2nd set\n')
+		else:
+			memory_matrix=mem_matrix
+			#print mem_matrix
+			#raw_input('\n history matrix i:e memory matrix set\n')
+			
+	return (memory_matrix,history_matrix_2nd,history_matrix_3rd)
