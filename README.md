@@ -1,12 +1,7 @@
 CLA
 ===
 
-Reconstruction of input pattern from learnt connections.
 
-Overview:
-  This code is a simple implementation of CLA. My main objective was to test if reconstruction of inputs is 
-  possible without lookup tables. Every predicting columns connection weights to the input pattern are added up 
-  and top few bits are choosen. These ON bits turn out to be the same input bits.
   
 Description of Functions:
 
@@ -34,12 +29,10 @@ Description of Functions:
       now for newly active col, we check prediction from old memory matrix which is stored in history matrix. if any 
       columnar prediction match, the predictive cell is activated in that particular col else a random cell is turned ON.
       Now connections between current active memory cells and past memory cells is strengthen in synapse matrix. Also
-      connection between active columns and active input bits is strengthened in connection matrix. Thats it probably.
+      connection between active columns and active input bits is strengthened in connection matrix. 
       
-  5-  Now in this algorithm prediction doesnt work good. I implemented everythin according to the white papers i guess.
-      So i tried reconstructing the input immediatly after the pattern is learnt in memory matrix. And it works. !! As 
-      you execute the code, it will show input pattern and output pattern. both match in sequence !!
       
-  If any one can fix prediction, that would be awesome !
+      
+  
       
       
